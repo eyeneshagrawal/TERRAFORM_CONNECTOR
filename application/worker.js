@@ -31,46 +31,50 @@ export default {
     const m = path.match(/^\/api\/tasks(?:\/([A-Za-z0-9_-]+))?\/?$/);
     if (!m) return json({ error: "Not found" }, 404);
     const id = m[1];
+    const kv = env.TASKS_KV;
 
     try {
       if (!id && method === "GET") {
-        const ids = await getIndex(env.TASKS_KV);
-        const tasks = (await Promise.all(ids.map((i) => env.TASKS_KV.get(i, "json")))).filter(Boolean);
-        tasks.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+        const ids = await getIndex(kv);
+        const tasks = (await Promise.all(ids.map((i) => kv.get(i, "json")))).filter(Boolean);
+        tasks.sort((a, b) => num(a.id) - num(b.id));
         return json(tasks);
       }
       if (!id && method === "POST") {
         const body = await request.json();
         if (!body.title || !String(body.title).trim()) return json({ error: "title is required" }, 400);
-        const ids = await getIndex(env.TASKS_KV);
+        const ids = await getIndex(kv);
         const task = {
-          id: "T" + (ids.reduce((m, i) => Math.max(m, num(i)), 100) + 1),
+          id: "T" + (ids.reduce((mx, i) => Math.max(mx, num(i)), 100) + 1),
           title: String(body.title).trim(),
           priority: body.priority || "Medium",
           status: body.status || "Pending",
+          category: body.category || "General",
+          deadline: body.deadline || "",
           createdDate: new Date().toISOString().slice(0, 10),
         };
-        await env.TASKS_KV.put(task.id, JSON.stringify(task));
-        await saveIndex(env.TASKS_KV, [...ids, task.id]);
+        await kv.put(task.id, JSON.stringify(task));
+        await saveIndex(kv, [...ids, task.id]);
         return json(task, 201);
       }
       if (id && method === "GET") {
-        const task = await env.TASKS_KV.get(id, "json");
+        const task = await kv.get(id, "json");
         return task ? json(task) : json({ error: "Task not found" }, 404);
       }
       if (id && method === "PUT") {
-        const task = await env.TASKS_KV.get(id, "json");
+        const task = await kv.get(id, "json");
         if (!task) return json({ error: "Task not found" }, 404);
-        const body = await request.json();
-        const updated = { ...task, title: body.title ?? task.title, priority: body.priority ?? task.priority, status: body.status ?? task.status };
-        await env.TASKS_KV.put(id, JSON.stringify(updated));
+        const b = await request.json();
+        const updated = { ...task };
+        for (const f of ["title", "priority", "status", "category", "deadline"]) if (b[f] !== undefined) updated[f] = b[f];
+        await kv.put(id, JSON.stringify(updated));
         return json(updated);
       }
       if (id && method === "DELETE") {
-        const task = await env.TASKS_KV.get(id, "json");
+        const task = await kv.get(id, "json");
         if (!task) return json({ error: "Task not found" }, 404);
-        await env.TASKS_KV.delete(id);
-        await saveIndex(env.TASKS_KV, (await getIndex(env.TASKS_KV)).filter((i) => i !== id));
+        await kv.delete(id);
+        await saveIndex(kv, (await getIndex(kv)).filter((i) => i !== id));
         return json({ message: "Task removed successfully", id });
       }
       return json({ error: "Method not allowed" }, 405);
