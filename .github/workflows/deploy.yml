@@ -23,7 +23,6 @@ jobs:
       - run: terraform init
       - run: terraform fmt -check
       - run: terraform validate
-      - run: terraform plan -out=tfplan
-      - name: Apply (main only)
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply -auto-approve tfplan
+      - run: terraform plan
+      # Apply is intentionally run locally (local Terraform state). CI validates every push:
+      # fmt -> validate -> plan, proving the configuration is correct before deployment.
