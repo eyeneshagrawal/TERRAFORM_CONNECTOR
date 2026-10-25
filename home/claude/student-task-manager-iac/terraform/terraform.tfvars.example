@@ -1,0 +1,6 @@
+account_id        = "your_cloudflare_account_id"
+worker_name       = "student-task-manager"
+kv_namespace_name = "student_tasks"
+environment       = "dev"
+app_title         = "Student Task Manager"
+workers_subdomain = "your-workers-subdomain"
