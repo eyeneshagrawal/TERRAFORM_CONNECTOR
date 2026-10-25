@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{APP_TITLE}}</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <h1>{{APP_TITLE}}</h1>
+    <form id="task-form">
+      <input id="title" placeholder="Task title" required>
+      <select id="priority"><option>High</option><option selected>Medium</option><option>Low</option></select>
+      <select id="status"><option selected>Pending</option><option>Completed</option></select>
+      <button type="submit">Add Task</button>
+    </form>
+    <div class="bar">
+      <input id="search" placeholder="Search tasks...">
+      <select id="filter"><option value="">All</option><option>Pending</option><option>Completed</option></select>
+      <span id="stats"></span>
+    </div>
+    <table>
+      <thead><tr><th>ID</th><th>Task</th><th>Priority</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </main>
+  <script src="/script.js"></script>
+</body>
+</html>

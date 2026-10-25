@@ -1,0 +1,12 @@
+body{font-family:system-ui,sans-serif;background:#f4f6fb;margin:0;color:#1d2433}
+main{max-width:900px;margin:32px auto;padding:0 16px}
+form,.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+input,select,button{padding:8px 10px;border:1px solid #c9d1e0;border-radius:6px;font-size:14px}
+#title{flex:1;min-width:200px}
+button{background:#2f6fed;color:#fff;border:0;cursor:pointer}
+button.del{background:#d64545}button.done{background:#2e9e5b}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden}
+th,td{padding:10px;text-align:left;border-bottom:1px solid #e6eaf2}
+th{background:#eaeffa}
+.High{color:#d64545;font-weight:600}.Medium{color:#c78a00}.Low{color:#2e9e5b}
+#stats{margin-left:auto;align-self:center;font-size:14px}
