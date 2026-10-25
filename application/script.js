@@ -29,11 +29,11 @@ function render() {
 
 document.getElementById("task-form").onsubmit = async (e) => {
   e.preventDefault();
-  await api("/api/tasks", { method: "POST", body: JSON.stringify({
+  const created = await api("/api/tasks", { method: "POST", body: JSON.stringify({
     title: document.getElementById("title").value,
     priority: document.getElementById("priority").value,
     status: document.getElementById("status").value }) });
-  e.target.reset(); load();
+  e.target.reset(); if (created.id) { tasks.push(created); render(); } else alert(created.error || "Failed to add task");
 };
 document.getElementById("search").oninput = render;
 document.getElementById("filter").onchange = render;

@@ -5,11 +5,15 @@ const SCRIPT_JS = __SCRIPT_JS__;
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
 
-async function nextId(kv) {
+// KV list() is eventually consistent, so we keep our own index key (get/put are read-your-writes).
+async function getIndex(kv) {
+  const idx = await kv.get("_index", "json");
+  if (idx) return idx;
   const { keys } = await kv.list({ prefix: "T" });
-  const max = keys.reduce((m, k) => Math.max(m, parseInt(k.name.slice(1), 10) || 100), 100);
-  return "T" + (max + 1);
+  return keys.map((k) => k.name);
 }
+const saveIndex = (kv, ids) => kv.put("_index", JSON.stringify(ids));
+const num = (id) => parseInt(id.slice(1), 10) || 100;
 
 export default {
   async fetch(request, env) {
@@ -30,22 +34,24 @@ export default {
 
     try {
       if (!id && method === "GET") {
-        const { keys } = await env.TASKS_KV.list({ prefix: "T" });
-        const tasks = (await Promise.all(keys.map((k) => env.TASKS_KV.get(k.name, "json")))).filter(Boolean);
+        const ids = await getIndex(env.TASKS_KV);
+        const tasks = (await Promise.all(ids.map((i) => env.TASKS_KV.get(i, "json")))).filter(Boolean);
         tasks.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
         return json(tasks);
       }
       if (!id && method === "POST") {
         const body = await request.json();
         if (!body.title || !String(body.title).trim()) return json({ error: "title is required" }, 400);
+        const ids = await getIndex(env.TASKS_KV);
         const task = {
-          id: await nextId(env.TASKS_KV),
+          id: "T" + (ids.reduce((m, i) => Math.max(m, num(i)), 100) + 1),
           title: String(body.title).trim(),
           priority: body.priority || "Medium",
           status: body.status || "Pending",
           createdDate: new Date().toISOString().slice(0, 10),
         };
         await env.TASKS_KV.put(task.id, JSON.stringify(task));
+        await saveIndex(env.TASKS_KV, [...ids, task.id]);
         return json(task, 201);
       }
       if (id && method === "GET") {
@@ -64,6 +70,7 @@ export default {
         const task = await env.TASKS_KV.get(id, "json");
         if (!task) return json({ error: "Task not found" }, 404);
         await env.TASKS_KV.delete(id);
+        await saveIndex(env.TASKS_KV, (await getIndex(env.TASKS_KV)).filter((i) => i !== id));
         return json({ message: "Task removed successfully", id });
       }
       return json({ error: "Method not allowed" }, 405);
